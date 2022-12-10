@@ -61,7 +61,7 @@ static void app_handle_cmd(struct android_app* app, int32_t cmd) {
         case APP_CMD_DESTROY: {
             Log::Write(Log::Level::Info, "onDestroy()");
             Log::Write(Log::Level::Info, "    APP_CMD_DESTROY");
-            appState->nativeWindow = NULL;
+            appState->nativeWindow = nullptr;
             break;
         }
         case APP_CMD_INIT_WINDOW: {
@@ -73,7 +73,7 @@ static void app_handle_cmd(struct android_app* app, int32_t cmd) {
         case APP_CMD_TERM_WINDOW: {
             Log::Write(Log::Level::Info, "surfaceDestroyed()");
             Log::Write(Log::Level::Info, "    APP_CMD_TERM_WINDOW");
-            appState->nativeWindow = NULL;
+            appState->nativeWindow = nullptr;
             break;
         }
     }
@@ -129,15 +129,15 @@ static void pxrapi_init_layers(struct android_app* app)
 
 static void pxrapi_init_controller(struct android_app* app)
 {
-    AndroidAppState* s = (AndroidAppState*)app->userData;
+    auto* s = (AndroidAppState*)app->userData;
     Pxr_GetControllerMainInputHandle(&s->mainController);
 }
 
 static void pxrapi_init_events(struct android_app* app)
 {
-    AndroidAppState* s = (AndroidAppState*)app->userData;
-    for(int i = 0; i<MaxEventCount; i++){
-        s->eventDataPointer[i] = new PxrEventDataBuffer;
+    auto* s = (AndroidAppState*)app->userData;
+    for(auto & i : s->eventDataPointer){
+        i = new PxrEventDataBuffer;
     }
 }
 
@@ -152,11 +152,11 @@ static void pxrapi_init(struct android_app* app){
 }
 
 static void pxrapi_deinit(struct android_app* app) {
-    AndroidAppState* s = (AndroidAppState*)app->userData;
+    auto* s = (AndroidAppState*)app->userData;
     //destroy eye layer
     Pxr_DestroyLayer(s->eyeLayerId);
-    for(int i = 0; i<MaxEventCount; i++){
-        delete s->eventDataPointer[i];
+    for(auto & i : s->eventDataPointer){
+        delete i;
     }
     Pxr_Shutdown();
 }
@@ -164,7 +164,7 @@ static void pxrapi_deinit(struct android_app* app) {
 static void dispatch_events(struct android_app* app)
 {
     int eventCount = 0;
-    AndroidAppState* s = (AndroidAppState*)app->userData;
+    auto* s = (AndroidAppState*)app->userData;
 
     if( Pxr_PollEvent(MaxEventCount, &eventCount, s->eventDataPointer) ){
         for(int i=0; i<eventCount; i++){
@@ -198,7 +198,7 @@ static void dispatch_events(struct android_app* app)
                 BYValue      = state.BYValue;
                 sideValue    = state.sideValue;
 
-                float trigger = (float)triggerValue;    // trigger value
+                auto trigger = (float)triggerValue;    // trigger value
                 if(trigger > 0.01f ){
                     Pxr_SetControllerVibration(hand, trigger, 20);
                 }
@@ -248,7 +248,7 @@ static void render_frame(struct android_app* app)
 {
     if(!Pxr_IsRunning()) return;
 
-    AndroidAppState* s = (AndroidAppState*)app->userData;
+    auto* s = (AndroidAppState*)app->userData;
     int sensorFrameIndex;
     int eyeCount = 2;
     PxrPosef pose[eyeCount];
@@ -356,26 +356,22 @@ void android_main(struct android_app* app) {
                 if (ALooper_pollAll(timeoutMilliseconds, nullptr, &events, (void**)&source) < 0) {
                     break;
                 }
-
                 // Process this event.
                 if (source != nullptr) {
                     source->process(app, source);
                 }
             }
-
             dispatch_events(app);
             render_frame(app);
         }
-
         pxrapi_deinit(app);
-
     } catch (const std::exception& ex) {
         Log::Write(Log::Level::Error, ex.what());
     } catch (...) {
         Log::Write(Log::Level::Error, "Unknown Error");
     }
     sleep(1);
-    //exit needed to release so resouces
+    //exit needed to release so resources
     exit(0);
 }
 
